@@ -16,5 +16,3 @@ typedef struct
 void SHA1_Init(SHA1_CTX *);
 void SHA1_Update(SHA1_CTX *, const uint8_t * msg, int len);
 void SHA1_Final(uint8_t *digest, SHA1_CTX *);
-
-
