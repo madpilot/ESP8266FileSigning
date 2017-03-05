@@ -2,6 +2,7 @@
 // http://vec3.ca/simple-digital-signatures/
 // http://stackoverflow.com/questions/16224184/openssl-rsa-signature-verification-hash-and-padding
 #include "FS.h"
+#include "rsa.h"
 #include "sha1.h"
 #include "sha256.h"
 
