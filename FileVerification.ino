@@ -9,14 +9,23 @@
 void setup() {
   Serial.begin(115200);
 
+  /* Data variables */
   unsigned char *data;
   int data_size;
-  
-  unsigned char hash1[SHA1_SIZE];
-  unsigned char hash1_computed[SHA1_SIZE];
 
-  unsigned char hash256[SHA256_SIZE];
-  unsigned char hash256_computed[SHA256_SIZE];
+  /* Hash variables */
+  unsigned char *sig;
+  int sig_size;
+  unsigned char *hash;
+  unsigned char hash_computed[SHA256_SIZE];
+
+  /* RSA variables */
+  #define MAX_KEY_LEN 512
+  
+  unsigned char *modulus;
+  int modulus_len;
+  unsigned char *exponent = 0x10001;
+  int exponent_len = ;
   
   SPIFFS.begin();
 
@@ -27,41 +36,41 @@ void setup() {
   f1.read(data, data_size);
   f1.close();
 
-  Serial.println("Loading hash1");
-  File f2 = SPIFFS.open("/hash1", "r");
-  f2.read(hash1, SHA1_SIZE);
-  f2.close();
-
-  Serial.println("Loading hash256");
-  File f3 = SPIFFS.open("/hash256", "r");
-  f3.read(hash256, SHA256_SIZE);
+  Serial.println("Loading sig256");
+  File f3 = SPIFFS.open("/sig256", "r");
+  sig_size = f3.size();
+  sig = (unsigned char *)malloc(sizeof(unsigned char) * sig_size);
+  f3.read(sig, sig_size);
   f3.close();
   SPIFFS.end();
 
-  Serial.println("Computing the SHA1 hash");
-  SHA1_CTX sha1;
-  SHA1_Init(&sha1);
-  SHA1_Update(&sha1, (const uint8_t*)data, data_size);
-  SHA1_Final(hash1_computed, &sha1);
-
-  if(memcmp(hash1, hash1_computed, SHA1_SIZE) == 0) {
-    Serial.println("SHA1 Hash matches");
-  } else {
-    Serial.println("SHA1 Hash does not match");
+  Serial.println("Decrypting the SHA256 hash");
+  RSA_CTX *rsa = NULL;
+  RSA_pub_key_new(&rsa, modulus, modulus_len, exponent, exponent_len);
+  if(!rsa) {
+    Serial.println("Out of memory");
+    return;
   }
+  unsigned char sig_bytes[MAX_KEY_LEN];
+  int len = RSA_decrypt(rsa, (const uint8_t*)sig, sig_bytes, 0, 1);
+  RSA_free(rsa);
+
+  if(len == -1 || len < SHA256_SIZE) {
+    Serial.println("Invalida signature");
+  }
+  hash = sig_bytes + len - SHA256_SIZE;
 
   Serial.println("Computing the SHA256 hash");
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, (const uint8_t*)data, data_size);
-  SHA256_Final(hash256_computed, &sha256);
+  SHA256_Final(hash_computed, &sha256);
 
-  if(memcmp(hash256, hash256_computed, SHA256_SIZE) == 0) {
+  if(memcmp(hash, hash_computed, SHA256_SIZE) == 0) {
     Serial.println("SHA256 Hash matches");
   } else {
     Serial.println("SHA256 Hash does not match");
   }
-
 }
 
 void loop() {

@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2007, Cameron Rich
- * 
+ *
  * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without 
+ *
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
- * * Redistributions of source code must retain the above copyright notice, 
+ * * Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * * Neither the name of the axTLS project nor the names of its contributors 
- *   may be used to endorse or promote products derived from this software 
+ * * Neither the name of the axTLS project nor the names of its contributors
+ *   may be used to endorse or promote products derived from this software
  *   without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -33,8 +33,8 @@
  * @brief The bigint implementation as used by the axTLS project.
  *
  * The bigint library is for RSA encryption/decryption as well as signing.
- * This code tries to minimise use of malloc/free by maintaining a small 
- * cache. A bigint context may maintain state by being made "permanent". 
+ * This code tries to minimise use of malloc/free by maintaining a small
+ * cache. A bigint context may maintain state by being made "permanent".
  * It be be later released with a bi_depermanent() and bi_free() call.
  *
  * It supports the following reduction techniques:
@@ -85,9 +85,9 @@ BI_CTX *bi_initialize(void)
 {
     /* calloc() sets everything to zero */
     BI_CTX *ctx = (BI_CTX *)calloc(1, sizeof(BI_CTX));
-   
+
     /* the radix */
-    ctx->bi_radix = alloc(ctx, 2); 
+    ctx->bi_radix = alloc(ctx, 2);
     ctx->bi_radix->comps[0] = 0;
     ctx->bi_radix->comps[1] = 1;
     bi_permanent(ctx->bi_radix);
@@ -97,13 +97,13 @@ BI_CTX *bi_initialize(void)
 /**
  * @brief Close the bigint context and free any resources.
  *
- * Free up any used memory - a check is done if all objects were not 
+ * Free up any used memory - a check is done if all objects were not
  * properly freed.
  * @param ctx [in]   The bigint session context.
  */
 void bi_terminate(BI_CTX *ctx)
 {
-    bi_depermanent(ctx->bi_radix); 
+    bi_depermanent(ctx->bi_radix);
     bi_free(ctx, ctx->bi_radix);
 
     if (ctx->active_count != 0)
@@ -124,7 +124,7 @@ void bi_clear_cache(BI_CTX *ctx)
 
     if (ctx->free_list == NULL)
         return;
-    
+
     for (p = ctx->free_list; p != NULL; p = pn)
     {
         pn = p->next;
@@ -137,7 +137,7 @@ void bi_clear_cache(BI_CTX *ctx)
 }
 
 /**
- * @brief Increment the number of references to this object. 
+ * @brief Increment the number of references to this object.
  * It does not do a full copy.
  * @param bi [in]   The bigint to copy.
  * @return A reference to the same bigint.
@@ -183,9 +183,9 @@ void bi_depermanent(bigint *bi)
 }
 
 /**
- * @brief Free a bigint object so it can be used again. 
+ * @brief Free a bigint object so it can be used again.
  *
- * The memory itself it not actually freed, just tagged as being available 
+ * The memory itself it not actually freed, just tagged as being available
  * @param ctx [in]   The bigint session context.
  * @param bi [in]    The bigint to be freed.
  */
@@ -216,7 +216,7 @@ void bi_free(BI_CTX *ctx, bigint *bi)
  * @brief Convert an (unsigned) integer into a bigint.
  * @param ctx [in]   The bigint session context.
  * @param i [in]     The (unsigned) integer to be converted.
- * 
+ *
  */
 bigint *int_to_bi(BI_CTX *ctx, comp i)
 {
@@ -284,7 +284,7 @@ bigint *bi_add(BI_CTX *ctx, bigint *bia, bigint *bib)
  * is_negative may be null.
  * @return The result of the subtraction. The result is always positive.
  */
-bigint *bi_subtract(BI_CTX *ctx, 
+bigint *bi_subtract(BI_CTX *ctx,
         bigint *bia, bigint *bib, int *is_negative)
 {
     int n = bia->size;
@@ -297,7 +297,7 @@ bigint *bi_subtract(BI_CTX *ctx,
     pa = bia->comps;
     pb = bib->comps;
 
-    do 
+    do
     {
         comp sl, rl, cy1;
         sl = *pa - *pb++;
@@ -345,7 +345,7 @@ static bigint *bi_int_multiply(BI_CTX *ctx, bigint *bia, comp b)
 }
 
 /**
- * @brief Does both division and modulo calculations. 
+ * @brief Does both division and modulo calculations.
  *
  * Used extensively when doing classical reduction.
  * @param ctx [in]  The bigint session context.
@@ -419,9 +419,9 @@ bigint *bi_divide(BI_CTX *ctx, bigint *u, bigint *v, int is_mod)
             if (v->size > 1 && V2)
             {
                 /* we are implementing the following:
-                if (V2*q_dash > (((U(0)*COMP_RADIX + U(1) - 
+                if (V2*q_dash > (((U(0)*COMP_RADIX + U(1) -
                         q_dash*V1)*COMP_RADIX) + U(2))) ... */
-                comp inner = (comp)((long_comp)COMP_RADIX*U(0) + U(1) - 
+                comp inner = (comp)((long_comp)COMP_RADIX*U(0) + U(1) -
                                             (long_comp)q_dash*V1);
                 if ((long_comp)V2*q_dash > (long_comp)inner*COMP_RADIX + U(2))
                 {
@@ -434,11 +434,11 @@ bigint *bi_divide(BI_CTX *ctx, bigint *u, bigint *v, int is_mod)
         if (q_dash)
         {
             int is_negative;
-            tmp_u = bi_subtract(ctx, tmp_u, 
+            tmp_u = bi_subtract(ctx, tmp_u,
                     bi_int_multiply(ctx, bi_copy(v), q_dash), &is_negative);
             more_comps(tmp_u, n+1);
 
-            Q(j) = q_dash; 
+            Q(j) = q_dash;
 
             /* add back */
             if (is_negative)
@@ -453,7 +453,7 @@ bigint *bi_divide(BI_CTX *ctx, bigint *u, bigint *v, int is_mod)
         }
         else
         {
-            Q(j) = 0; 
+            Q(j) = 0;
         }
 
         /* copy back to u */
@@ -524,7 +524,7 @@ bigint *bi_import(BI_CTX *ctx, const uint8_t *data, int size)
 }
 
 /**
- * @brief Take a bigint and convert it into a byte sequence. 
+ * @brief Take a bigint and convert it into a byte sequence.
  *
  * This is useful after a decrypt operation.
  * @param ctx [in]  The bigint session context.
@@ -559,8 +559,132 @@ buf_done:
     bi_free(ctx, x);
 }
 
+/*
+ * Work out the highest '1' bit in an exponent. Used when doing sliding-window
+ * exponentiation.
+ */
+static int find_max_exp_index(bigint *biexp)
+{
+    int i = COMP_BIT_SIZE-1;
+    comp shift = COMP_RADIX/2;
+    comp test = biexp->comps[biexp->size-1];    /* assume no leading zeroes */
+
+    check(biexp);
+
+    do
+    {
+        if (test & shift)
+        {
+            return i+(biexp->size-1)*COMP_BIT_SIZE;
+        }
+
+        shift >>= 1;
+    } while (i-- != 0);
+
+    return -1;      /* error - must have been a leading 0 */
+}
+
+/*
+ * Is a particular bit is an exponent 1 or 0? Used when doing sliding-window
+ * exponentiation.
+ */
+static int exp_bit_is_one(bigint *biexp, int offset)
+{
+    comp test = biexp->comps[offset / COMP_BIT_SIZE];
+    int num_shifts = offset % COMP_BIT_SIZE;
+    comp shift = 1;
+    int i;
+
+    check(biexp);
+
+    for (i = 0; i < num_shifts; i++)
+    {
+        shift <<= 1;
+    }
+
+    return (test & shift) != 0;
+}
+
+
+
 /**
- * @brief Pre-calculate some of the expensive steps in reduction. 
+ * @brief Perform a modular exponentiation.
+ *
+ * This function requires bi_set_mod() to have been called previously. This is
+ * one of the optimisations used for performance.
+ * @param ctx [in]  The bigint session context.
+ * @param bi  [in]  The bigint on which to perform the mod power operation.
+ * @param biexp [in] The bigint exponent.
+ * @return The result of the mod exponentiation operation
+ * @see bi_set_mod().
+ */
+bigint *bi_mod_power(BI_CTX *ctx, bigint *bi, bigint *biexp)
+{
+    int i = find_max_exp_index(biexp), j, window_size = 1;
+    bigint *biR = int_to_bi(ctx, 1);
+    check(bi);
+    check(biexp);
+    ctx->g = (bigint **)malloc(sizeof(bigint *));
+    ctx->g[0] = bi_clone(ctx, bi);
+    ctx->window = 1;
+    bi_permanent(ctx->g[0]);
+
+    /* if sliding-window is off, then only one bit will be done at a time and
+     * will reduce to standard left-to-right exponentiation */
+    do
+    {
+        if (exp_bit_is_one(biexp, i))
+        {
+            int l = i-window_size+1;
+            int part_exp = 0;
+
+            if (l < 0)  /* LSB of exponent will always be 1 */
+                l = 0;
+            else
+            {
+                while (exp_bit_is_one(biexp, l) == 0)
+                    l++;    /* go back up */
+            }
+
+            /* build up the section of the exponent */
+            for (j = i; j >= l; j--)
+            {
+                biR = bi_residue(ctx, bi_square(ctx, biR));
+                if (exp_bit_is_one(biexp, j))
+                    part_exp++;
+
+                if (j != l)
+                    part_exp <<= 1;
+            }
+
+            part_exp = (part_exp-1)/2;  /* adjust for array */
+            biR = bi_residue(ctx, bi_multiply(ctx, biR, ctx->g[part_exp]));
+            i = l-1;
+        }
+        else    /* square it */
+        {
+            biR = bi_residue(ctx, bi_square(ctx, biR));
+            i--;
+        }
+    } while (i >= 0);
+
+    /* cleanup */
+    for (i = 0; i < ctx->window; i++)
+    {
+        bi_depermanent(ctx->g[i]);
+        bi_free(ctx, ctx->g[i]);
+    }
+
+    free(ctx->g);
+    bi_free(ctx, bi);
+    bi_free(ctx, biexp);
+    return biR; /* convert back */
+}
+
+
+
+/**
+ * @brief Pre-calculate some of the expensive steps in reduction.
  *
  * This function should only be called once (normally when a session starts).
  * When the session is over, bi_free_mod() should be called. bi_mod_power()
@@ -593,18 +717,18 @@ void bi_free_mod(BI_CTX *ctx, int mod_offset)
 {
     bi_depermanent(ctx->bi_mod[mod_offset]);
     bi_free(ctx, ctx->bi_mod[mod_offset]);
-    bi_depermanent(ctx->bi_normalised_mod[mod_offset]); 
+    bi_depermanent(ctx->bi_normalised_mod[mod_offset]);
     bi_free(ctx, ctx->bi_normalised_mod[mod_offset]);
 }
 
-/** 
+/**
  * Perform a standard multiplication between two bigints.
  *
  * Barrett reduction has no need for some parts of the product, so ignore bits
  * of the multiply. This routine gives Barrett its big performance
- * improvements over Classical/Montgomery reduction methods. 
+ * improvements over Classical/Montgomery reduction methods.
  */
-static bigint *regular_multiply(BI_CTX *ctx, bigint *bia, bigint *bib, 
+static bigint *regular_multiply(BI_CTX *ctx, bigint *bia, bigint *bib,
         int inner_partial, int outer_partial)
 {
     int i = 0, j;
@@ -621,7 +745,7 @@ static bigint *regular_multiply(BI_CTX *ctx, bigint *bia, bigint *bib,
     /* clear things to start with */
     memset(biR->comps, 0, ((n+t)*COMP_BYTE_SIZE));
 
-    do 
+    do
     {
         long_comp tmp;
         comp carry = 0;
@@ -636,7 +760,7 @@ static bigint *regular_multiply(BI_CTX *ctx, bigint *bia, bigint *bib,
 
         do
         {
-            if (inner_partial && r_index >= inner_partial) 
+            if (inner_partial && r_index >= inner_partial)
             {
                 break;
             }
@@ -688,25 +812,25 @@ int bi_compare(bigint *bia, bigint *bib)
         r = -1;
     else
     {
-        comp *a = bia->comps; 
-        comp *b = bib->comps; 
+        comp *a = bia->comps;
+        comp *b = bib->comps;
 
         /* Same number of components.  Compare starting from the high end
          * and working down. */
         r = 0;
         i = bia->size - 1;
 
-        do 
+        do
         {
             if (a[i] > b[i])
-            { 
+            {
                 r = 1;
-                break; 
+                break;
             }
             else if (a[i] < b[i])
-            { 
+            {
                 r = -1;
-                break; 
+                break;
             }
         } while (--i >= 0);
     }
@@ -715,7 +839,7 @@ int bi_compare(bigint *bia, bigint *bib)
 }
 
 /*
- * Allocate and zero more components.  Does not consume bi. 
+ * Allocate and zero more components.  Does not consume bi.
  */
 static void more_comps(bigint *bi, int n)
 {
@@ -771,52 +895,6 @@ static bigint *alloc(BI_CTX *ctx, int size)
 }
 
 /*
- * Work out the highest '1' bit in an exponent. Used when doing sliding-window
- * exponentiation.
- */
-static int find_max_exp_index(bigint *biexp)
-{
-    int i = COMP_BIT_SIZE-1;
-    comp shift = COMP_RADIX/2;
-    comp test = biexp->comps[biexp->size-1];    /* assume no leading zeroes */
-
-    check(biexp);
-
-    do
-    {
-        if (test & shift)
-        {
-            return i+(biexp->size-1)*COMP_BIT_SIZE;
-        }
-
-        shift >>= 1;
-    } while (i-- != 0);
-
-    return -1;      /* error - must have been a leading 0 */
-}
-
-/*
- * Is a particular bit is an exponent 1 or 0? Used when doing sliding-window
- * exponentiation.
- */
-static int exp_bit_is_one(bigint *biexp, int offset)
-{
-    comp test = biexp->comps[offset / COMP_BIT_SIZE];
-    int num_shifts = offset % COMP_BIT_SIZE;
-    comp shift = 1;
-    int i;
-
-    check(biexp);
-
-    for (i = 0; i < num_shifts; i++)
-    {
-        shift <<= 1;
-    }
-
-    return (test & shift) != 0;
-}
-
-/*
  * Delete any leading 0's (and allow for 0).
  */
 static bigint *trim(bigint *bi)
@@ -829,4 +907,37 @@ static bigint *trim(bigint *bi)
     }
 
     return bi;
+}
+
+/**
+ * @brief Use the Chinese Remainder Theorem to quickly perform RSA decrypts.
+ *
+ * @param ctx [in]  The bigint session context.
+ * @param bi  [in]  The bigint to perform the exp/mod.
+ * @param dP [in] CRT's dP bigint
+ * @param dQ [in] CRT's dQ bigint
+ * @param p [in] CRT's p bigint
+ * @param q [in] CRT's q bigint
+ * @param qInv [in] CRT's qInv bigint
+ * @return The result of the CRT operation
+ */
+bigint *bi_crt(BI_CTX *ctx, bigint *bi,
+        bigint *dP, bigint *dQ,
+        bigint *p, bigint *q, bigint *qInv)
+{
+    bigint *m1, *m2, *h;
+
+    /* Montgomery has a condition the 0 < x, y < m and these products violate
+     * that condition. So disable Montgomery when using CRT */
+    ctx->mod_offset = BIGINT_P_OFFSET;
+    m1 = bi_mod_power(ctx, bi_copy(bi), dP);
+
+    ctx->mod_offset = BIGINT_Q_OFFSET;
+    m2 = bi_mod_power(ctx, bi, dQ);
+
+    h = bi_subtract(ctx, bi_add(ctx, m1, p), bi_copy(m2), NULL);
+    h = bi_multiply(ctx, h, qInv);
+    ctx->mod_offset = BIGINT_P_OFFSET;
+    h = bi_residue(ctx, h);
+    return bi_add(ctx, m2, bi_multiply(ctx, q, h));
 }
