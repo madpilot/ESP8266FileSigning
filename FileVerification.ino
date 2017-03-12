@@ -94,7 +94,7 @@ void setup() {
 
   Serial.println("Decrypting the SHA256 hash");
   unsigned char sig_bytes[MAX_KEY_LEN];
-  int len = RSA_decrypt(x509_ctx->rsa_ctx, (const uint8_t*)sig, sig_bytes, 0, 1);
+  int len = RSA_decrypt(x509_ctx->rsa_ctx, (const uint8_t*)sig, sig_bytes, MAX_KEY_LEN, 0);
 
   if(len == -1) {
     Serial.println("Invalid signature");

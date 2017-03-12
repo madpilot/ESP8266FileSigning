@@ -145,19 +145,29 @@ int RSA_decrypt(const RSA_CTX *ctx, const uint8_t *in_data,
 
     /* decrypt */
     dat_bi = bi_import(ctx->bi_ctx, in_data, byte_size);
-    decrypted_bi = RSA_private(ctx, dat_bi);
+    decrypted_bi = is_decryption ? RSA_private(ctx, dat_bi) : RSA_public(ctx, dat_bi);
 
     /* convert to a normal block */
     bi_export(ctx->bi_ctx, decrypted_bi, block, byte_size);
 
     if (block[i++] != 0)             /* leading 0? */
         return -1;
+    
+    if (is_decryption == 0)
     {
-        if (block[i++] != 0x02)     /* BT correct? */
+        if (block[i++] != 0x01)     /* BT correct? */
             return -1;
 
-        while (block[i++] && i < byte_size)
+        while (block[i++] == 0xff && i < byte_size)
             pad_count++;
+    } 
+    else 
+    {
+      if (block[i++] != 0x02)     /* BT correct? */
+        return -1;
+
+      while (block[i++] && i < byte_size)
+        pad_count++;
     }
 
     /* check separator byte 0x00 - and padding must be 8 or more bytes */
@@ -177,5 +187,80 @@ int RSA_decrypt(const RSA_CTX *ctx, const uint8_t *in_data,
 bigint *RSA_private(const RSA_CTX *c, bigint *bi_msg)
 {
     return bi_crt(c->bi_ctx, bi_msg, c->dP, c->dQ, c->p, c->q, c->qInv);
+}
+
+/**
+ * Performs c = m^e mod n
+ */
+bigint *RSA_public(const RSA_CTX * c, bigint *bi_msg)
+{
+    c->bi_ctx->mod_offset = BIGINT_M_OFFSET;
+    return bi_mod_power(c->bi_ctx, bi_msg, c->e);
+}
+
+int get_random(int num_rand_bytes, uint8_t *rand_data)
+{
+  for(int i = 0; i < num_rand_bytes; i++) {
+    rand_data[i] = random(0, 255);
+  }
+  return 0;
+}
+
+/**
+ * Set a series of bytes with a random number. Individual bytes are not zero.
+ */
+int get_random_NZ(int num_rand_bytes, uint8_t *rand_data)
+{
+    int i;
+    if (get_random(num_rand_bytes, rand_data))
+        return -1;
+
+    for (i = 0; i < num_rand_bytes; i++)
+    {
+        while (rand_data[i] == 0)  /* can't be 0 */
+            rand_data[i] = (uint8_t)(rand());
+    }
+
+    return 0;
+}
+
+/**
+ * Use PKCS1.5 for encryption/signing.
+ * see http://www.rsasecurity.com/rsalabs/node.asp?id=2125
+ */
+int RSA_encrypt(const RSA_CTX *ctx, const uint8_t *in_data, uint16_t in_len,
+        uint8_t *out_data, int is_signing)
+{
+    int byte_size = ctx->num_octets;
+    int num_pads_needed = byte_size-in_len-3;
+    bigint *dat_bi, *encrypt_bi;
+
+    /* note: in_len+11 must be > byte_size */
+    out_data[0] = 0;     /* ensure encryption block is < modulus */
+
+    if (is_signing)
+    {
+        out_data[1] = 1;        /* PKCS1.5 signing pads with "0xff"'s */
+        memset(&out_data[2], 0xff, num_pads_needed);
+    }
+    else /* randomize the encryption padding with non-zero bytes */
+    {
+        out_data[1] = 2;
+        if (get_random_NZ(num_pads_needed, &out_data[2]) < 0)
+            return -1;
+    }
+
+    out_data[2+num_pads_needed] = 0;
+    memcpy(&out_data[3+num_pads_needed], in_data, in_len);
+
+    /* now encrypt it */
+    dat_bi = bi_import(ctx->bi_ctx, out_data, byte_size);
+    encrypt_bi = is_signing ? RSA_private(ctx, dat_bi) :
+                              RSA_public(ctx, dat_bi);
+    bi_export(ctx->bi_ctx, encrypt_bi, out_data, byte_size);
+
+    /* save a few bytes of memory */
+    bi_clear_cache(ctx->bi_ctx);
+    return byte_size;
 }
 
