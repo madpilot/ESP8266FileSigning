@@ -1,8 +1,11 @@
 // References:
 // http://vec3.ca/simple-digital-signatures/
 // http://stackoverflow.com/questions/16224184/openssl-rsa-signature-verification-hash-and-padding
+
+#include "ca.h"
 #include "FS.h"
 #include "rsa.h"
+#include "asn1.h"
 #include "sha1.h"
 #include "sha256.h"
 
@@ -13,6 +16,10 @@ void setup() {
   unsigned char *data;
   int data_size;
 
+  /* Cert variables */
+  unsigned char *cert;
+  int cert_size;
+
   /* Hash variables */
   unsigned char *sig;
   int sig_size;
@@ -21,13 +28,42 @@ void setup() {
 
   /* RSA variables */
   #define MAX_KEY_LEN 512
-  
-  unsigned char *modulus;
-  int modulus_len;
-  unsigned char *exponent = 0x10001;
-  int exponent_len = ;
-  
+
+  int x509_res;
+
   SPIFFS.begin();
+
+  Serial.println("Setting up CA");
+
+  CA_CERT_CTX *ca_ctx;
+  ca_ctx = (CA_CERT_CTX *)malloc(sizeof(CA_CERT_CTX));
+  x509_res = x509_new((const uint8_t *)ca_crt_der, &ca_crt_der_len, &(ca_ctx->cert[0]));
+  if(x509_res != X509_OK) {
+    Serial.print("Could not load CA certificate: ");
+    Serial.println(x509_res);
+    return;
+  } else {
+    Serial.print("Loaded CA certificate. Common Name: ");
+    Serial.println(ca_ctx->cert[0]->cert_dn[X509_COMMON_NAME]);
+  }
+  
+  Serial.println("Loading developer.crt.der");
+  File f2 = SPIFFS.open("/developer.crt.der", "r");
+  cert_size = f2.size();
+  cert = (unsigned char *)malloc(sizeof(unsigned char) * cert_size);
+  f2.read(cert, cert_size);
+  f2.close();
+
+  X509_CTX *x509_ctx = NULL;
+  x509_res = x509_new(cert, &cert_size, &x509_ctx);
+  if(x509_res != X509_OK) {
+    Serial.print("Could not load certificate: ");
+    Serial.println(x509_res);
+    return;
+  } else {
+    Serial.print("Loaded developer certificate. Common Name: ");
+    Serial.println(x509_ctx->cert_dn[X509_COMMON_NAME]);
+  }
 
   Serial.println("Loading data.txt");
   File f1 = SPIFFS.open("/data.txt", "r");
@@ -35,7 +71,18 @@ void setup() {
   data = (unsigned char *)malloc(sizeof(unsigned char) * data_size);
   f1.read(data, data_size);
   f1.close();
+  
+  int constraint;
+  int verify_res = x509_verify(ca_ctx, x509_ctx, &constraint);
 
+  if(verify_res == 0) {
+    Serial.println("Developer certificate verified");
+  } else {
+    Serial.print("Developer certificate verification failed: ");
+    Serial.println(verify_res);
+  }
+  
+  /*
   Serial.println("Loading sig256");
   File f3 = SPIFFS.open("/sig256", "r");
   sig_size = f3.size();
@@ -55,8 +102,11 @@ void setup() {
   int len = RSA_decrypt(rsa, (const uint8_t*)sig, sig_bytes, 0, 1);
   RSA_free(rsa);
 
-  if(len == -1 || len < SHA256_SIZE) {
-    Serial.println("Invalida signature");
+  if(len == -1) {
+    Serial.println("Invalid signature");
+  }
+  if(len < SHA256_SIZE) {
+    Serial.println("Signature too short");
   }
   hash = sig_bytes + len - SHA256_SIZE;
 
@@ -71,6 +121,7 @@ void setup() {
   } else {
     Serial.println("SHA256 Hash does not match");
   }
+  */
 }
 
 void loop() {

@@ -681,6 +681,41 @@ bigint *bi_mod_power(BI_CTX *ctx, bigint *bi, bigint *biexp)
     return biR; /* convert back */
 }
 
+/**
+ * @brief Perform a modular exponentiation using a temporary modulus.
+ *
+ * We need this function to check the signatures of certificates. The modulus
+ * of this function is temporary as it's just used for authentication.
+ * @param ctx [in]  The bigint session context.
+ * @param bi  [in]  The bigint to perform the exp/mod.
+ * @param bim [in]  The temporary modulus.
+ * @param biexp [in] The bigint exponent.
+ * @return The result of the mod exponentiation operation
+ * @see bi_set_mod().
+ */
+bigint *bi_mod_power2(BI_CTX *ctx, bigint *bi, bigint *bim, bigint *biexp)
+{
+    bigint *biR, *tmp_biR;
+
+    /* Set up a temporary bigint context and transfer what we need between
+     * them. We need to do this since we want to keep the original modulus
+     * which is already in this context. This operation is only called when
+     * doing peer verification, and so is not expensive :-) */
+    BI_CTX *tmp_ctx = bi_initialize();
+    bi_set_mod(tmp_ctx, bi_clone(tmp_ctx, bim), BIGINT_M_OFFSET);
+    tmp_biR = bi_mod_power(tmp_ctx,
+                bi_clone(tmp_ctx, bi),
+                bi_clone(tmp_ctx, biexp));
+    biR = bi_clone(ctx, tmp_biR);
+    bi_free(tmp_ctx, tmp_biR);
+    bi_free_mod(tmp_ctx, BIGINT_M_OFFSET);
+    bi_terminate(tmp_ctx);
+
+    bi_free(ctx, bi);
+    bi_free(ctx, bim);
+    bi_free(ctx, biexp);
+    return biR;
+}
 
 
 /**

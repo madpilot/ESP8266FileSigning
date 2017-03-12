@@ -33,7 +33,7 @@
  * This code was originally taken from RFC3174
  */
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include "sha1.h"
 
 /*

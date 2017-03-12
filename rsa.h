@@ -1,3 +1,6 @@
+#ifndef HEADER_RSA_H
+#define HEADER_RSA_H
+
 #include "bigint.h"
 
 typedef struct
@@ -37,3 +40,5 @@ bigint *RSA_public(const RSA_CTX * c, bigint *bi_msg);
 int RSA_encrypt(const RSA_CTX *ctx, const uint8_t *in_data, uint16_t in_len,
         uint8_t *out_data, int is_signing);
 void RSA_print(const RSA_CTX *ctx);
+
+#endif

@@ -32,7 +32,7 @@
  * Implements the RSA public encryption algorithm. Uses the bigint library to
  * perform its calculations.
  */
-#include "Arduino.h"
+#include <Arduino.h>
 #include "rsa.h"
 
 void RSA_priv_key_new(RSA_CTX **ctx, 

@@ -30,6 +30,7 @@
 
 #ifndef BIGINT_IMPL_HEADER
 #define BIGINT_IMPL_HEADER
+#include <Arduino.h>
 
 /* Maintain a number of precomputed variables when doing reduction */
 #define BIGINT_M_OFFSET     0    /**< Normal modulo offset. */
