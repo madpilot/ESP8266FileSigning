@@ -1,6 +1,7 @@
 // References:
 // http://vec3.ca/simple-digital-signatures/
 // http://stackoverflow.com/questions/16224184/openssl-rsa-signature-verification-hash-and-padding
+// http://stackoverflow.com/questions/10782826/digital-signature-for-a-file-using-openssl
 
 #include "ca.h"
 #include "FS.h"
@@ -80,9 +81,9 @@ void setup() {
   } else {
     Serial.print("Developer certificate verification failed: ");
     Serial.println(verify_res);
+    return;
   }
   
-  /*
   Serial.println("Loading sig256");
   File f3 = SPIFFS.open("/sig256", "r");
   sig_size = f3.size();
@@ -92,21 +93,16 @@ void setup() {
   SPIFFS.end();
 
   Serial.println("Decrypting the SHA256 hash");
-  RSA_CTX *rsa = NULL;
-  RSA_pub_key_new(&rsa, modulus, modulus_len, exponent, exponent_len);
-  if(!rsa) {
-    Serial.println("Out of memory");
-    return;
-  }
   unsigned char sig_bytes[MAX_KEY_LEN];
-  int len = RSA_decrypt(rsa, (const uint8_t*)sig, sig_bytes, 0, 1);
-  RSA_free(rsa);
+  int len = RSA_decrypt(x509_ctx->rsa_ctx, (const uint8_t*)sig, sig_bytes, 0, 1);
 
   if(len == -1) {
     Serial.println("Invalid signature");
+    return;
   }
   if(len < SHA256_SIZE) {
     Serial.println("Signature too short");
+    return;
   }
   hash = sig_bytes + len - SHA256_SIZE;
 
@@ -121,7 +117,6 @@ void setup() {
   } else {
     Serial.println("SHA256 Hash does not match");
   }
-  */
 }
 
 void loop() {
